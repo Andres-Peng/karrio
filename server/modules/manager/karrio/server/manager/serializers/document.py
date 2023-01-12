@@ -18,11 +18,21 @@ class DocumentUploadSerializer(core.DocumentUploadData):
     ) -> models.DocumentUploadRecord:
         shipment = validated_data.get("shipment")
         carrier = getattr(shipment, "selected_rate_carrier", None)
+        reference = getattr(shipment, "tracking_number", None)
+        payload = core.DocumentUploadData(validated_data).data
+        options = ({
+            "origin_country_code": shipment.shipper.country_code,
+            "origin_postal_code": shipment.shipper.postal_code,
+            "destination_country_code": shipment.recipient.country_code,
+            "destination_postal_code": shipment.recipient.postal_code,
+            **(payload.get("options") or {})
+        } if shipment else payload.get("options"))
 
         response = gateway.Documents.upload(
             {
-                "reference": getattr(shipment, "tracking_number", None),
-                **core.DocumentUploadData(validated_data).data,
+                **payload,
+                "options": options,
+                "reference": reference,
             },
             carrier=carrier,
             context=context,
@@ -48,11 +58,21 @@ class DocumentUploadSerializer(core.DocumentUploadData):
         **kwargs,
     ) -> models.DocumentUploadRecord:
         changes = []
+        payload = core.DocumentUploadData(validated_data).data
+        options = ({
+            "origin_country_code": instance.shipment.shipper.country_code,
+            "origin_postal_code": instance.shipment.shipper.postal_code,
+            "destination_country_code": instance.shipment.recipient.country_code,
+            "destination_postal_code": instance.shipment.recipient.postal_code,
+            **(payload.get("options") or {})
+        } if instance.shipment else payload.get("options"))
+        reference = getattr(instance.shipment, "tracking_number", None)
 
         response = gateway.Documents.upload(
             {
-                "reference": getattr(instance.shipment, "tracking_number", None),
-                **core.DocumentUploadData(validated_data).data,
+                **payload,
+                "options": options,
+                "reference": reference,
             },
             carrier=instance.upload_carrier,
             context=context,
