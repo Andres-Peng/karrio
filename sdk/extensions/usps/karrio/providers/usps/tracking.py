@@ -16,7 +16,7 @@ def parse_tracking_response(
     details = [
         _extract_details(node, settings)
         for node in tracks_info
-        if len(lib.find_element("TrackDetail", node)) > 0
+        if len(lib.find_element("TrackSummary", node))>0
     ]
 
     return details, error.parse_error_response(response, settings)
